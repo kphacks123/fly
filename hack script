@@ -1,0 +1,57 @@
+ocal player = game.Players.LocalPlayer
+local flying = false
+local speed = 50
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local bodyGyro, bodyVelocity
+
+function startFlying()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    
+    bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.P = 9e4
+    bodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+    bodyGyro.cframe = humanoidRootPart.CFrame
+    bodyGyro.Parent = humanoidRootPart
+
+    bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.velocity = Vector3.new(0,0,0)
+    bodyVelocity.maxForce = Vector3.new(9e9, 9e9, 9e9)
+    bodyVelocity.Parent = humanoidRootPart
+
+    flying = true
+
+    RunService.RenderStepped:Connect(function()
+        if flying then
+            local moveDirection = humanoidRootPart.CFrame:VectorToWorldSpace(Vector3.new(
+                (UserInputService:IsKeyDown(Enum.KeyCode.D) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.A) and 1 or 0),
+                (UserInputService:IsKeyDown(Enum.KeyCode.Space) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) and 1 or 0),
+                (UserInputService:IsKeyDown(Enum.KeyCode.S) and 1 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.W) and 1 or 0)
+            )).Unit
+            if moveDirection ~= moveDirection then -- NaN check
+                moveDirection = Vector3.new(0,0,0)
+            end
+            bodyVelocity.velocity = moveDirection * speed
+            bodyGyro.cframe = workspace.CurrentCamera.CFrame
+        end
+    end)
+end
+
+function stopFlying()
+    flying = false
+    if bodyGyro then bodyGyro:Destroy() end
+    if bodyVelocity then bodyVelocity:Destroy() end
+end
+
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.KeyCode == Enum.KeyCode.F then
+        if not flying then
+            startFlying()
+        else
+            stopFlying()
+        end
+    end
+end)
